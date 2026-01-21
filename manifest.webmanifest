@@ -1,13 +1,21 @@
 {
-  "name": "A Escote",
-  "short_name": "A Escote",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "icons": [
-    { "src": "icon-calendar.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-calendar.png", "sizes": "512x512", "type": "image/png" }
-  ]
+"name": "Reparto de Gastos",
+"short_name": "Gastos",
+"start_url": "./index.html",
+"display": "standalone",
+"background_color": "#f1f5f9",
+"theme_color": "#f1f5f9",
+"orientation": "portrait",
+"icons": [
+{
+"src": "icon-escote.png",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "icon-escote.png",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
 }
