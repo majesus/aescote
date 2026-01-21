@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <!-- Iconos app -->
+    <link rel="icon" sizes="192x192" href="icon-escote.png">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Gastos - Versión Visual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            padding-bottom: 80px; /* Espacio para footer */
+        }
+        
+        /* Estilo personalizado para los sliders (Range) */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+
+        input[type=range]:focus {
+            outline: none; 
+        }
+
+        /* Thumb (el botón que se arrastra) - Chrome/Safari */
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #2563eb; /* Blue 600 */
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+
+        /* Track (la barra) - Chrome/Safari */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        /* Animaciones */
+        .card-enter { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Efecto de salida al borrar */
+        .slide-out {
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.3s ease-in;
+        }
+
+        .std-input {
+            @apply w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 py-4 px-4 shadow-sm sticky top-0 z-40">
+        <div class="max-w-3xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="calculator" class="w-6 h-6 text-blue-600"></i>
+                Reparto de Gastos
+            </h1>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6">
+
+        <!-- BLOQUE SUPERIOR: Ajustes y Balance -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 1. Ajuste Multiplicador (Slider) -->
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i data-lucide="settings-2" class="w-4 h-4"></i> Configuración Valor Niño
+                </h2>
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-medium text-gray-600">Puntos por niño</span>
+                        <span id="childMultiplierValue" class="text-2xl font-bold text-blue-600">0.5</span>
+                    </div>
+                    <input type="range" id="childMultiplierInput" min="0" max="1" step="0.1" value="0.5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSettings()">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>0 (Gratis)</span>
+                        <span>0.5 (Mitad)</span>
+                        <span>1 (Igual)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Balance Global -->
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i data-lucide="wallet" class="w-4 h-4"></i> Facturación
+                </h2>
+                <div>
+                     <label class="block text-sm font-medium text-gray-600 mb-1">Restante por Pagar (Factura)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">€</span>
+                        <input type="number" id="remainingBill" value="0" min="0" step="0.01" oninput="calculate()" class="std-input pl-8 text-xl font-bold text-gray-800 bg-gray-50" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
+                    <span class="text-sm text-gray-500">Costo Total Evento:</span>
+                    <span id="totalCostDisplay" class="font-bold text-gray-900">0.00 €</span>
+                </div>
+            </section>
+        </div>
+
+        <!-- VISUALIZADOR DE PRECIO POR PUNTO -->
+        <div class="bg-blue-600 text-white rounded-lg p-3 text-center shadow-md flex justify-around items-center">
+            <div>
+                <span class="block text-xs opacity-75 uppercase">Puntos Totales</span>
+                <span id="totalPointsDisplay" class="text-xl font-bold">0</span>
+            </div>
+            <div class="h-8 w-px bg-blue-400"></div>
+            <div>
+                <span class="block text-xs opacity-75 uppercase">Precio por Punto</span>
+                <span id="costPerPointDisplay" class="text-xl font-bold">0.00 €</span>
+            </div>
+        </div>
+
+        <!-- LISTA DE FAMILIAS -->
+        <div id="familiesContainer" class="space-y-4">
+            <!-- Tarjetas inyectadas vía JS -->
+        </div>
+
+        <!-- Botón Añadir -->
+        <button onclick="addNewFamilyUI()" class="w-full py-4 bg-white border-2 border-dashed border-gray-300 text-gray-500 font-medium rounded-xl hover:bg-gray-50 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+            Añadir Otra Familia
+        </button>
+
+    </main>
+
+    <!-- Footer Créditos -->
+    <footer class="fixed bottom-0 left-0 w-full bg-slate-800 text-slate-300 py-2 px-4 text-center text-xs z-50 border-t border-slate-700 font-medium shadow-lg">
+        Créditos de autoría: Manuel J. Sánchez Franco
+    </footer>
+
+    <!-- TEMPLATE TARJETA FAMILIA -->
+    <template id="familyTemplate">
+        <div class="family-card card-enter bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative overflow-hidden transition-all">
+            <!-- Barra lateral de estado de color -->
+            <div class="status-bar absolute left-0 top-0 bottom-0 w-1.5 bg-gray-300"></div>
+
+            <div class="pl-2"> <!-- Padding left extra para separar de la barra de estado -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-grow mr-4">
+                        <input type="text" class="family-name text-lg font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full placeholder-gray-400 transition-colors" placeholder="Nombre Familia...">
+                        <!-- Visualizador de Puntos de la Familia -->
+                        <div class="text-xs font-bold text-blue-600 mt-1">
+                            <span class="points-display">0</span> Puntos
+                        </div>
+                    </div>
+                    <!-- Botón Eliminar mejorado -->
+                    <button class="delete-btn p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-red-500 transition-all" title="Eliminar (Pulsar dos veces)">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                    <!-- Slider Adultos -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase"><i data-lucide="user" class="inline w-3 h-3 mr-1"></i> Adultos</label>
+                            <span class="display-adults font-bold text-blue-600 text-lg">1</span>
+                        </div>
+                        <input type="range" class="input-adults w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="5" step="1" value="1">
+                        <div class="flex justify-between text-[10px] text-gray-400 px-1 mt-1">
+                            <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        </div>
+                    </div>
+
+                    <!-- Slider Niños -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase"><i data-lucide="baby" class="inline w-3 h-3 mr-1"></i> Niños</label>
+                            <span class="display-children font-bold text-blue-600 text-lg">0</span>
+                        </div>
+                        <input type="range" class="input-children w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="10" step="1" value="0">
+                        <div class="flex justify-between text-[10px] text-gray-400 px-1 mt-1">
+                            <span>0</span><span>5</span><span>10</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-center bg-gray-50 rounded-lg p-3">
+                    <div class="w-full sm:w-1/2">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Dinero Adelantado</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">€</span>
+                            <input type="number" min="0" step="0.01" value="0" class="input-paid std-input pl-7 font-semibold text-gray-700 bg-white">
+                        </div>
+                    </div>
+                    
+                    <!-- Caja Resultado -->
+                    <div class="result-box w-full sm:w-1/2 text-center py-2 px-4 rounded-md border border-gray-200 bg-white">
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 result-label">Estado</span>
+                        <span class="text-xl font-bold result-value text-gray-800">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        lucide.createIcons();
+        let CHILD_MULTIPLIER = 0.5;
+        const STORAGE_KEY = 'expenseCalcData_v3_sliders';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        // --- Core Functions ---
+
+        function saveData() {
+            const familiesData = [];
+            document.querySelectorAll('.family-card').forEach(card => {
+                familiesData.push({
+                    name: card.querySelector('.family-name').value,
+                    adults: card.querySelector('.input-adults').value,
+                    children: card.querySelector('.input-children').value,
+                    paid: card.querySelector('.input-paid').value
+                });
+            });
+
+            const appState = {
+                remainingBill: document.getElementById('remainingBill').value,
+                childMultiplier: CHILD_MULTIPLIER,
+                families: familiesData
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        }
+
+        function loadData() {
+            const savedStateJson = localStorage.getItem(STORAGE_KEY);
+            if (savedStateJson) {
+                try {
+                    const state = JSON.parse(savedStateJson);
+                    document.getElementById('remainingBill').value = state.remainingBill || 0;
+                    
+                    CHILD_MULTIPLIER = state.childMultiplier !== undefined ? parseFloat(state.childMultiplier) : 0.5;
+                    document.getElementById('childMultiplierInput').value = CHILD_MULTIPLIER;
+                    document.getElementById('childMultiplierValue').textContent = CHILD_MULTIPLIER;
+
+                    const container = document.getElementById('familiesContainer');
+                    container.innerHTML = '';
+                    
+                    if (state.families && state.families.length > 0) {
+                        state.families.forEach(fam => createFamilyCard(fam.name, fam.adults, fam.children, fam.paid));
+                    } else {
+                        addDefaultFamilies();
+                    }
+                } catch (e) {
+                    console.error("Error loading data", e);
+                    addDefaultFamilies();
+                }
+            } else {
+                addDefaultFamilies();
+            }
+            calculate();
+        }
+
+        function updateSettings() {
+            const input = document.getElementById('childMultiplierInput');
+            CHILD_MULTIPLIER = parseFloat(input.value);
+            document.getElementById('childMultiplierValue').textContent = CHILD_MULTIPLIER;
+            calculate();
+        }
+
+        function addDefaultFamilies() {
+             createFamilyCard('Familia A', 2, 1, 0);
+             createFamilyCard('Familia B', 1, 0, 0);
+        }
+
+        function addNewFamilyUI() {
+            createFamilyCard();
+            calculate();
+        }
+
+        function createFamilyCard(name = '', adults = 1, children = 0, paid = 0) {
+            const container = document.getElementById('familiesContainer');
+            const template = document.getElementById('familyTemplate');
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.family-card');
+            
+            // Set initial values
+            card.querySelector('.family-name').value = name;
+            
+            const inputAdults = card.querySelector('.input-adults');
+            const displayAdults = card.querySelector('.display-adults');
+            inputAdults.value = adults;
+            displayAdults.textContent = adults;
+
+            const inputChildren = card.querySelector('.input-children');
+            const displayChildren = card.querySelector('.display-children');
+            inputChildren.value = children;
+            displayChildren.textContent = children;
+
+            card.querySelector('.input-paid').value = paid;
+
+            // Slider Listeners (Update display number immediately)
+            inputAdults.addEventListener('input', (e) => {
+                displayAdults.textContent = e.target.value;
+                calculate();
+            });
+
+            inputChildren.addEventListener('input', (e) => {
+                displayChildren.textContent = e.target.value;
+                calculate();
+            });
+
+            // Other input listeners
+            card.querySelector('.family-name').addEventListener('input', saveData);
+            card.querySelector('.input-paid').addEventListener('input', calculate);
+
+            // --- Lógica del Botón de Eliminar (FIXED) ---
+            const deleteBtn = card.querySelector('.delete-btn');
+            let deleteTimer;
+
+            deleteBtn.addEventListener('click', () => {
+                // Comprobamos si ya está en estado "confirmar" (tiene data-confirm="true")
+                if (deleteBtn.dataset.confirm === "true") {
+                    // Acción de borrado
+                    card.classList.add('slide-out'); // Animación CSS
+                    setTimeout(() => { 
+                        card.remove(); 
+                        calculate(); 
+                    }, 300); // Esperar a que termine la animación
+                } else {
+                    // Primera pulsación: Activar modo confirmación
+                    deleteBtn.dataset.confirm = "true";
+                    
+                    // Cambiar estilos a ROJO para indicar peligro
+                    deleteBtn.classList.remove('text-gray-400', 'hover:bg-gray-100');
+                    deleteBtn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+                    
+                    // Temporizador para cancelar si no pulsa otra vez
+                    deleteTimer = setTimeout(() => {
+                        deleteBtn.dataset.confirm = "false";
+                        // Revertir estilos
+                        deleteBtn.classList.add('text-gray-400', 'hover:bg-gray-100');
+                        deleteBtn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
+                    }, 3000); // 3 segundos para confirmar
+                }
+            });
+
+            container.appendChild(clone);
+            lucide.createIcons();
+        }
+
+        function calculate() {
+            const familyCards = document.querySelectorAll('.family-card');
+            const remainingBill = parseFloat(document.getElementById('remainingBill').value) || 0;
+            
+            let totalPaidByFamilies = 0;
+            let totalPoints = 0;
+            const familyDataCalc = [];
+
+            familyCards.forEach(card => {
+                const adults = parseInt(card.querySelector('.input-adults').value) || 0;
+                const children = parseInt(card.querySelector('.input-children').value) || 0;
+                const paid = parseFloat(card.querySelector('.input-paid').value) || 0;
+                
+                const points = (adults * 1) + (children * CHILD_MULTIPLIER);
+                
+                totalPaidByFamilies += paid;
+                totalPoints += points;
+
+                familyDataCalc.push({ card, points, paid });
+            });
+
+            const totalCost = totalPaidByFamilies + remainingBill;
+            let costPerPoint = totalPoints > 0 ? (totalCost / totalPoints) : 0;
+
+            // UI Global Updates
+            document.getElementById('totalCostDisplay').innerText = formatCurrency(totalCost);
+            document.getElementById('totalPointsDisplay').innerText = totalPoints.toFixed(1).replace(/\.0$/, '');
+            document.getElementById('costPerPointDisplay').innerText = formatCurrency(costPerPoint);
+
+            // Per Family Logic
+            familyDataCalc.forEach(fam => {
+                const fairShare = fam.points * costPerPoint;
+                const balance = fam.paid - fairShare; 
+                
+                const resultBox = fam.card.querySelector('.result-box');
+                const resultLabel = fam.card.querySelector('.result-label');
+                const resultValue = fam.card.querySelector('.result-value');
+                const statusBar = fam.card.querySelector('.status-bar');
+                
+                // Actualizar puntos
+                const pointsDisplay = fam.card.querySelector('.points-display');
+                if(pointsDisplay) {
+                    pointsDisplay.textContent = fam.points.toFixed(1).replace(/\.0$/, '');
+                }
+
+                // Reset Defaults
+                resultLabel.className = "block text-[10px] font-bold uppercase tracking-wider mb-0.5 result-label";
+                resultValue.className = "text-xl font-bold result-value";
+                resultBox.className = "result-box w-full sm:w-1/2 text-center py-2 px-4 rounded-md border transition-colors bg-white";
+
+                if (totalPoints === 0 || totalCost === 0) {
+                    resultLabel.innerText = "-";
+                    resultValue.innerText = "0.00 €";
+                    resultValue.classList.add('text-gray-400');
+                    statusBar.className = "status-bar absolute left-0 top-0 bottom-0 w-1.5 bg-gray-300";
+                } else if (balance <= -0.01) {
+                    // Pagar (Rojo)
+                    resultLabel.innerText = "Debe Pagar";
+                    resultLabel.classList.add('text-red-600');
+                    resultValue.innerText = formatCurrency(Math.abs(balance));
+                    resultValue.classList.add('text-red-700');
+                    resultBox.classList.add('border-red-100', 'bg-red-50');
+                    statusBar.className = "status-bar absolute left-0 top-0 bottom-0 w-1.5 bg-red-500";
+                } else if (balance >= 0.01) {
+                    // Devolver (Verde)
+                    resultLabel.innerText = "Recibe";
+                    resultLabel.classList.add('text-emerald-600');
+                    resultValue.innerText = formatCurrency(Math.abs(balance));
+                    resultValue.classList.add('text-emerald-700');
+                    resultBox.classList.add('border-emerald-100', 'bg-emerald-50');
+                    statusBar.className = "status-bar absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500";
+                } else {
+                    // En Paz
+                    resultLabel.innerText = "En Paz";
+                    resultLabel.classList.add('text-gray-500');
+                    resultValue.innerText = "0.00 €";
+                    resultValue.classList.add('text-gray-700');
+                    resultBox.classList.add('border-gray-200');
+                    statusBar.className = "status-bar absolute left-0 top-0 bottom-0 w-1.5 bg-gray-300";
+                }
+            });
+
+            saveData();
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(num);
+        }
+    </script>
+</body>
+</html>
