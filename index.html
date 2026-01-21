@@ -20,17 +20,27 @@
       }
     </style>
 
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora de Gastos - Versión Visual</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* FIX: Restaurar scroll natural para compatibilidad total (Ratón + Táctil) */
+        html {
+            /* Eliminamos height: 100% para evitar atrapar el scroll */
+            overflow-x: hidden;
+        }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: #f1f5f9;
             color: #334155;
             padding-bottom: 80px; /* Espacio para footer */
+            
+            min-height: 100vh;
+            overflow-x: hidden;
+            /* Eliminamos overflow-y: auto forzado en body, dejamos que el navegador gestione el scroll de la ventana */
         }
         
         /* Estilo personalizado para los sliders (Range) */
@@ -87,7 +97,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen relative">
+<body class="relative">
 
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 py-4 px-4 shadow-sm sticky top-0 z-40">
